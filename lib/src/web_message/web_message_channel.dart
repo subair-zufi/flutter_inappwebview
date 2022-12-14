@@ -1,13 +1,8 @@
 import 'package:flutter/services.dart';
-import '../types/main.dart';
+import '../types.dart';
 import '../in_app_webview/in_app_webview_controller.dart';
 
 ///The representation of the [HTML5 message channels](https://html.spec.whatwg.org/multipage/web-messaging.html#message-channels).
-///
-///**Supported Platforms/Implementations**:
-///- Android native WebView
-///- iOS
-///- MacOS
 class WebMessageChannel {
   ///Message Channel ID used internally.
   final String id;
@@ -24,14 +19,7 @@ class WebMessageChannel {
       {required this.id, required this.port1, required this.port2}) {
     this._channel = MethodChannel(
         'com.pichillilorenzo/flutter_inappwebview_web_message_channel_$id');
-    this._channel.setMethodCallHandler((call) async {
-      try {
-        return await _handleMethod(call);
-      } on Error catch (e) {
-        print(e);
-        print(e.stackTrace);
-      }
-    });
+    this._channel.setMethodCallHandler(handleMethod);
   }
 
   static WebMessageChannel? fromMap(Map<String, dynamic>? map) {
@@ -47,7 +35,7 @@ class WebMessageChannel {
     return webMessageChannel;
   }
 
-  Future<dynamic> _handleMethod(MethodCall call) async {
+  Future<dynamic> handleMethod(MethodCall call) async {
     switch (call.method) {
       case "onMessage":
         int index = call.arguments["index"];

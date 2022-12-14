@@ -34,8 +34,6 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
     var inAppBrowserManager: InAppBrowserManager?
     var headlessInAppWebViewManager: HeadlessInAppWebViewManager?
     var chromeSafariBrowserManager: ChromeSafariBrowserManager?
-    var webAuthenticationSessionManager: WebAuthenticationSessionManager?
-    var printJobManager: PrintJobManager?
     
     var webViewControllers: [String: InAppBrowserWebViewController?] = [:]
     var safariViewControllers: [String: Any?] = [:]
@@ -44,7 +42,7 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
         super.init()
         
         self.registrar = registrar
-        registrar.register(FlutterWebViewFactory(registrar: registrar) as FlutterPlatformViewFactory, withId: FlutterWebViewFactory.VIEW_TYPE_ID)
+        registrar.register(FlutterWebViewFactory(registrar: registrar) as FlutterPlatformViewFactory, withId: "com.pichillilorenzo/flutter_inappwebview")
         
         platformUtil = PlatformUtil(registrar: registrar)
         inAppBrowserManager = InAppBrowserManager(registrar: registrar)
@@ -58,8 +56,6 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
         if #available(iOS 9.0, *) {
             myWebStorageManager = MyWebStorageManager(registrar: registrar)
         }
-        webAuthenticationSessionManager = WebAuthenticationSessionManager(registrar: registrar)
-        printJobManager = PrintJobManager()
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -87,9 +83,5 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
             (myWebStorageManager as! MyWebStorageManager?)?.dispose()
             myWebStorageManager = nil
         }
-        webAuthenticationSessionManager?.dispose()
-        webAuthenticationSessionManager = nil
-        printJobManager?.dispose()
-        printJobManager = nil
     }
 }

@@ -24,17 +24,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.pichillilorenzo.flutter_inappwebview.find_interaction.FindInteractionController;
-import com.pichillilorenzo.flutter_inappwebview.types.Disposable;
+import com.pichillilorenzo.flutter_inappwebview.InAppWebViewMethodHandler;
 import com.pichillilorenzo.flutter_inappwebview.R;
 import com.pichillilorenzo.flutter_inappwebview.Util;
-import com.pichillilorenzo.flutter_inappwebview.pull_to_refresh.PullToRefreshChannelDelegate;
-import com.pichillilorenzo.flutter_inappwebview.webview.in_app_webview.InAppWebView;
-import com.pichillilorenzo.flutter_inappwebview.webview.in_app_webview.InAppWebViewChromeClient;
-import com.pichillilorenzo.flutter_inappwebview.webview.in_app_webview.InAppWebViewSettings;
-import com.pichillilorenzo.flutter_inappwebview.webview.WebViewChannelDelegate;
+import com.pichillilorenzo.flutter_inappwebview.in_app_webview.InAppWebView;
+import com.pichillilorenzo.flutter_inappwebview.in_app_webview.InAppWebViewChromeClient;
+import com.pichillilorenzo.flutter_inappwebview.in_app_webview.InAppWebViewOptions;
 import com.pichillilorenzo.flutter_inappwebview.pull_to_refresh.PullToRefreshLayout;
-import com.pichillilorenzo.flutter_inappwebview.pull_to_refresh.PullToRefreshSettings;
+import com.pichillilorenzo.flutter_inappwebview.pull_to_refresh.PullToRefreshOptions;
 import com.pichillilorenzo.flutter_inappwebview.types.URLRequest;
 import com.pichillilorenzo.flutter_inappwebview.types.UserScript;
 
@@ -46,11 +43,10 @@ import java.util.Map;
 
 import io.flutter.plugin.common.MethodChannel;
 
-public class InAppBrowserActivity extends AppCompatActivity implements InAppBrowserDelegate, Disposable {
-  protected static final String LOG_TAG = "InAppBrowserActivity";
-  public static final String METHOD_CHANNEL_NAME_PREFIX = "com.pichillilorenzo/flutter_inappbrowser_";
-  
-  @Nullable
+public class InAppBrowserActivity extends AppCompatActivity implements InAppBrowserDelegate {
+
+  static final String LOG_TAG = "InAppBrowserActivity";
+  public MethodChannel channel;
   public Integer windowId;
   public String id;
   @Nullable
@@ -63,7 +59,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   public Menu menu;
   @Nullable
   public SearchView searchView;
-  public InAppBrowserSettings customSettings = new InAppBrowserSettings();
+  public InAppBrowserOptions options = new InAppBrowserOptions();
   @Nullable
   public ProgressBar progressBar;
   public boolean isHidden = false;
@@ -71,9 +67,9 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   public String fromActivity;
   private List<ActivityResultListener> activityResultListeners = new ArrayList<>();
   @Nullable
-  public InAppBrowserManager manager;
+  public InAppWebViewMethodHandler methodCallDelegate;
   @Nullable
-  public InAppBrowserChannelDelegate channelDelegate;
+  public InAppBrowserManager manager;
   
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -88,44 +84,41 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
     manager = InAppBrowserManager.shared.get(managerId);
     if (manager == null || manager.plugin == null|| manager.plugin.messenger == null) return;
 
-    Map<String, Object> settingsMap = (Map<String, Object>) b.getSerializable("settings");
-    customSettings.parse(settingsMap);
+    Map<String, Object> optionsMap = (Map<String, Object>) b.getSerializable("options");
+    options.parse(optionsMap);
 
     windowId = b.getInt("windowId");
 
+    channel = new MethodChannel(manager.plugin.messenger, "com.pichillilorenzo/flutter_inappbrowser_" + id);
+
     setContentView(R.layout.activity_web_view);
 
-    Map<String, Object> pullToRefreshInitialSettings = (Map<String, Object>) b.getSerializable("pullToRefreshInitialSettings");
-    MethodChannel pullToRefreshLayoutChannel = new MethodChannel(manager.plugin.messenger, PullToRefreshLayout.METHOD_CHANNEL_NAME_PREFIX + id);
-    PullToRefreshSettings pullToRefreshSettings = new PullToRefreshSettings();
-    pullToRefreshSettings.parse(pullToRefreshInitialSettings);
+    Map<String, Object> pullToRefreshInitialOptions = (Map<String, Object>) b.getSerializable("pullToRefreshInitialOptions");
+    MethodChannel pullToRefreshLayoutChannel = new MethodChannel(manager.plugin.messenger, "com.pichillilorenzo/flutter_inappwebview_pull_to_refresh_" + id);
+    PullToRefreshOptions pullToRefreshOptions = new PullToRefreshOptions();
+    pullToRefreshOptions.parse(pullToRefreshInitialOptions);
     pullToRefreshLayout = findViewById(R.id.pullToRefresh);
-    pullToRefreshLayout.channelDelegate = new PullToRefreshChannelDelegate(pullToRefreshLayout, pullToRefreshLayoutChannel);
-    pullToRefreshLayout.settings = pullToRefreshSettings;
+    pullToRefreshLayout.channel = pullToRefreshLayoutChannel;
+    pullToRefreshLayout.options = pullToRefreshOptions;
     pullToRefreshLayout.prepare();
-    
+
     webView = findViewById(R.id.webView);
-    webView.id = id;
     webView.windowId = windowId;
     webView.inAppBrowserDelegate = this;
+    webView.channel = channel;
     webView.plugin = manager.plugin;
 
-    FindInteractionController findInteractionController = new FindInteractionController(webView, manager.plugin, id, null);
-    webView.findInteractionController = findInteractionController;
-    findInteractionController.prepare();
-
-    final MethodChannel channel = new MethodChannel(manager.plugin.messenger, METHOD_CHANNEL_NAME_PREFIX + id);
-    channelDelegate = new InAppBrowserChannelDelegate(channel);
-    webView.channelDelegate = new WebViewChannelDelegate(webView, channel);
+    methodCallDelegate = new InAppWebViewMethodHandler(webView);
+    channel.setMethodCallHandler(methodCallDelegate);
 
     fromActivity = b.getString("fromActivity");
 
     Map<String, Object> contextMenu = (Map<String, Object>) b.getSerializable("contextMenu");
     List<Map<String, Object>> initialUserScripts = (List<Map<String, Object>>) b.getSerializable("initialUserScripts");
 
-    InAppWebViewSettings webViewSettings = new InAppWebViewSettings();
-    webViewSettings.parse(settingsMap);
-    webView.customSettings = webViewSettings;
+    InAppWebViewOptions webViewOptions = new InAppWebViewOptions();
+    webViewOptions.parse(optionsMap);
+    webView.options = webViewOptions;
     webView.contextMenu = contextMenu;
 
     List<UserScript> userScripts = new ArrayList<>();
@@ -168,46 +161,45 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
       }
       else if (initialUrlRequest != null) {
         URLRequest urlRequest = URLRequest.fromMap(initialUrlRequest);
-        if (urlRequest != null) {
-          webView.loadUrl(urlRequest);
-        }
+        webView.loadUrl(urlRequest);
       }
     }
 
-    if (channelDelegate != null) {
-      channelDelegate.onBrowserCreated();
-    }
+    onBrowserCreated();
+  }
+
+  public void onBrowserCreated() {
+    Map<String, Object> obj = new HashMap<>();
+    channel.invokeMethod("onBrowserCreated", obj);
   }
 
   private void prepareView() {
 
-    if (webView != null) {
-      webView.prepare();
-    }
+    webView.prepare();
 
-    if (customSettings.hidden)
+    if (options.hidden)
       hide();
     else
       show();
 
     progressBar = findViewById(R.id.progressBar);
 
-    if (customSettings.hideProgressBar)
+    if (options.hideProgressBar)
       progressBar.setMax(0);
     else
       progressBar.setMax(100);
 
     if (actionBar != null) {
-      actionBar.setDisplayShowTitleEnabled(!customSettings.hideTitleBar);
+      actionBar.setDisplayShowTitleEnabled(!options.hideTitleBar);
 
-      if (customSettings.hideToolbarTop)
+      if (options.hideToolbarTop)
         actionBar.hide();
 
-      if (customSettings.toolbarTopBackgroundColor != null && !customSettings.toolbarTopBackgroundColor.isEmpty())
-        actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(customSettings.toolbarTopBackgroundColor)));
+      if (options.toolbarTopBackgroundColor != null && !options.toolbarTopBackgroundColor.isEmpty())
+        actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(options.toolbarTopBackgroundColor)));
 
-      if (customSettings.toolbarTopFixedTitle != null && !customSettings.toolbarTopFixedTitle.isEmpty())
-        actionBar.setTitle(customSettings.toolbarTopFixedTitle);
+      if (options.toolbarTopFixedTitle != null && !options.toolbarTopFixedTitle.isEmpty())
+        actionBar.setTitle(options.toolbarTopFixedTitle);
     }
   }
 
@@ -215,7 +207,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   public boolean onCreateOptionsMenu(Menu m) {
     menu = m;
 
-    if (actionBar != null && (customSettings.toolbarTopFixedTitle == null || customSettings.toolbarTopFixedTitle.isEmpty()))
+    if (actionBar != null && (options.toolbarTopFixedTitle == null || options.toolbarTopFixedTitle.isEmpty()))
       actionBar.setTitle(webView != null ? webView.getTitle() : "");
 
     if (menu == null)
@@ -227,7 +219,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
     MenuItem menuItem = menu.findItem(R.id.menu_search);
     if (menuItem != null) {
-      if (customSettings.hideUrlBar)
+      if (options.hideUrlBar)
         menuItem.setVisible(false);
 
       searchView = (SearchView) menuItem.getActionView();
@@ -276,7 +268,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
             }
           }
         });
-      }
+      } 
     }
 
     return true;
@@ -284,18 +276,18 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
   public boolean onKeyDown(int keyCode, KeyEvent event) {
     if (keyCode == KeyEvent.KEYCODE_BACK) {
-      if (customSettings.shouldCloseOnBackButtonPressed) {
+      if (options.shouldCloseOnBackButtonPressed) {
         close(null);
         return true;
       }
-      if (customSettings.allowGoBackWithBackButton) {
+      if (options.allowGoBackWithBackButton) {
         if (canGoBack())
           goBack();
-        else if (customSettings.closeOnCannotGoBack)
+        else if (options.closeOnCannotGoBack)
           close(null);
         return true;
       }
-      if (!customSettings.shouldCloseOnBackButtonPressed) {
+      if (!options.shouldCloseOnBackButtonPressed) {
         return true;
       }
     }
@@ -303,9 +295,8 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   }
 
   public void close(final MethodChannel.Result result) {
-    if (channelDelegate != null) {
-      channelDelegate.onExit();
-    }
+    Map<String, Object> obj = new HashMap<>();
+    channel.invokeMethod("onExit", obj);
 
     dispose();
 
@@ -342,16 +333,14 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   }
 
   public void hide() {
-    if (fromActivity != null) {
-      try {
-        isHidden = true;
-        Intent openActivity = new Intent(this, Class.forName(fromActivity));
-        openActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        startActivityIfNeeded(openActivity, 0);
-      } catch (ClassNotFoundException e) {
-        e.printStackTrace();
-        Log.d(LOG_TAG, e.getMessage());
-      }
+    try {
+      isHidden = true;
+      Intent openActivity = new Intent(this, Class.forName(fromActivity));
+      openActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+      startActivityIfNeeded(openActivity, 0);
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+      Log.d(LOG_TAG, e.getMessage());
     }
   }
 
@@ -373,7 +362,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   public void shareButtonClicked(MenuItem item) {
     Intent share = new Intent(Intent.ACTION_SEND);
     share.setType("text/plain");
-    share.putExtra(Intent.EXTRA_TEXT, webView != null ? webView.getUrl() : "");
+    share.putExtra(Intent.EXTRA_TEXT, webView.getUrl());
     startActivity(Intent.createChooser(share, "Share"));
   }
 
@@ -385,66 +374,64 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
     close(null);
   }
 
-  public void setSettings(InAppBrowserSettings newSettings, HashMap<String, Object> newSettingsMap) {
+  public void setOptions(InAppBrowserOptions newOptions, HashMap<String, Object> newOptionsMap) {
 
-    InAppWebViewSettings newInAppWebViewSettings = new InAppWebViewSettings();
-    newInAppWebViewSettings.parse(newSettingsMap);
-    if (webView != null) {
-      webView.setSettings(newInAppWebViewSettings, newSettingsMap);
-    }
+    InAppWebViewOptions newInAppWebViewOptions = new InAppWebViewOptions();
+    newInAppWebViewOptions.parse(newOptionsMap);
+    webView.setOptions(newInAppWebViewOptions, newOptionsMap);
 
-    if (newSettingsMap.get("hidden") != null && customSettings.hidden != newSettings.hidden) {
-      if (newSettings.hidden)
+    if (newOptionsMap.get("hidden") != null && options.hidden != newOptions.hidden) {
+      if (newOptions.hidden)
         hide();
       else
         show();
     }
 
-    if (newSettingsMap.get("hideProgressBar") != null && customSettings.hideProgressBar != newSettings.hideProgressBar && progressBar != null) {
-      if (newSettings.hideProgressBar)
+    if (newOptionsMap.get("hideProgressBar") != null && options.hideProgressBar != newOptions.hideProgressBar && progressBar != null) {
+      if (newOptions.hideProgressBar)
         progressBar.setMax(0);
       else
         progressBar.setMax(100);
     }
 
-    if (actionBar != null && newSettingsMap.get("hideTitleBar") != null && customSettings.hideTitleBar != newSettings.hideTitleBar)
-      actionBar.setDisplayShowTitleEnabled(!newSettings.hideTitleBar);
+    if (actionBar != null && newOptionsMap.get("hideTitleBar") != null && options.hideTitleBar != newOptions.hideTitleBar)
+      actionBar.setDisplayShowTitleEnabled(!newOptions.hideTitleBar);
 
-    if (actionBar != null && newSettingsMap.get("hideToolbarTop") != null && customSettings.hideToolbarTop != newSettings.hideToolbarTop) {
-      if (newSettings.hideToolbarTop)
+    if (actionBar != null && newOptionsMap.get("hideToolbarTop") != null && options.hideToolbarTop != newOptions.hideToolbarTop) {
+      if (newOptions.hideToolbarTop)
         actionBar.hide();
       else
         actionBar.show();
     }
 
-    if (actionBar != null && newSettingsMap.get("toolbarTopBackgroundColor") != null &&
-            !Util.objEquals(customSettings.toolbarTopBackgroundColor, newSettings.toolbarTopBackgroundColor) &&
-            newSettings.toolbarTopBackgroundColor != null && !newSettings.toolbarTopBackgroundColor.isEmpty())
-      actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(newSettings.toolbarTopBackgroundColor)));
+    if (actionBar != null && newOptionsMap.get("toolbarTopBackgroundColor") != null &&
+            !Util.objEquals(options.toolbarTopBackgroundColor, newOptions.toolbarTopBackgroundColor) &&
+            !newOptions.toolbarTopBackgroundColor.isEmpty())
+      actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(newOptions.toolbarTopBackgroundColor)));
 
-    if (actionBar != null && newSettingsMap.get("toolbarTopFixedTitle") != null &&
-            !Util.objEquals(customSettings.toolbarTopFixedTitle, newSettings.toolbarTopFixedTitle) &&
-            newSettings.toolbarTopFixedTitle != null && !newSettings.toolbarTopFixedTitle.isEmpty())
-      actionBar.setTitle(newSettings.toolbarTopFixedTitle);
+    if (actionBar != null && newOptionsMap.get("toolbarTopFixedTitle") != null &&
+            !Util.objEquals(options.toolbarTopFixedTitle, newOptions.toolbarTopFixedTitle) &&
+            !newOptions.toolbarTopFixedTitle.isEmpty())
+      actionBar.setTitle(newOptions.toolbarTopFixedTitle);
 
-    if (menu != null && newSettingsMap.get("hideUrlBar") != null && customSettings.hideUrlBar != newSettings.hideUrlBar) {
-      if (newSettings.hideUrlBar)
+    if (newOptionsMap.get("hideUrlBar") != null && options.hideUrlBar != newOptions.hideUrlBar) {
+      if (newOptions.hideUrlBar)
         menu.findItem(R.id.menu_search).setVisible(false);
       else
         menu.findItem(R.id.menu_search).setVisible(true);
     }
 
-    customSettings = newSettings;
+    options = newOptions;
   }
 
-  public Map<String, Object> getCustomSettings() {
-    Map<String, Object> webViewSettingsMap = webView != null ? webView.getCustomSettings() : null;
-    if (customSettings == null || webViewSettingsMap == null)
+  public Map<String, Object> getOptions() {
+    Map<String, Object> webViewOptionsMap = webView.getOptions();
+    if (options == null || webViewOptionsMap == null)
       return null;
 
-    Map<String, Object> settingsMap = customSettings.getRealSettings(this);
-    settingsMap.putAll(webViewSettingsMap);
-    return settingsMap;
+    Map<String, Object> optionsMap = options.getRealOptions(this);
+    optionsMap.putAll(webViewOptionsMap);
+    return optionsMap;
   }
 
   @Override
@@ -454,7 +441,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
   @Override
   public void didChangeTitle(String title) {
-    if (actionBar != null && (customSettings.toolbarTopFixedTitle == null || customSettings.toolbarTopFixedTitle.isEmpty())) {
+    if (actionBar != null && (options.toolbarTopFixedTitle == null || options.toolbarTopFixedTitle.isEmpty())) {
       actionBar.setTitle(title);
     }
   }
@@ -524,20 +511,16 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
     super.onActivityResult(requestCode, resultCode, data);
   }
 
-  @Override
   public void dispose() {
-    if (channelDelegate != null) {
-      channelDelegate.dispose();
-      channelDelegate = null;
-    }
+    channel.setMethodCallHandler(null);
     activityResultListeners.clear();
+    if (methodCallDelegate != null) {
+      methodCallDelegate.dispose();
+      methodCallDelegate = null;
+    }
     if (webView != null) {
-      if (manager != null && manager.plugin != null &&
-              manager.plugin.activityPluginBinding != null && webView.inAppWebViewChromeClient != null) {
+      if (manager != null && manager.plugin != null && manager.plugin.activityPluginBinding != null) {
         manager.plugin.activityPluginBinding.removeActivityResultListener(webView.inAppWebViewChromeClient);
-      }
-      if (webView.channelDelegate != null) {
-        webView.channelDelegate.dispose();
       }
       ViewGroup vg = (ViewGroup) (webView.getParent());
       if (vg != null) {

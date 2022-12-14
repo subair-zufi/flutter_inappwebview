@@ -19,8 +19,6 @@ public class HttpAuthenticationChallenge extends URLAuthenticationChallenge {
     Map<String, Object> challengeMap = super.toMap();
     challengeMap.put("previousFailureCount", previousFailureCount);
     challengeMap.put("proposedCredential", (proposedCredential != null) ? proposedCredential.toMap() : null);
-    challengeMap.put("failureResponse", null);
-    challengeMap.put("error", null);
     return challengeMap;
   }
 

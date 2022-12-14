@@ -32,8 +32,6 @@ public class URLCredential {
     Map<String, Object> urlCredentialMap = new HashMap<>();
     urlCredentialMap.put("username", username);
     urlCredentialMap.put("password", password);
-    urlCredentialMap.put("certificates", null);
-    urlCredentialMap.put("persistence", null);
     return urlCredentialMap;
   }
 

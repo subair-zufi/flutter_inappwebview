@@ -895,7 +895,6 @@ class MimeTypeResolver {
     "csv": "text/csv",
     "html": "text/html",
     "htm": "text/html",
-    "mjs": "text/javascript",
     "n3": "text/n3",
     "txt": "text/plain",
     "text": "text/plain",

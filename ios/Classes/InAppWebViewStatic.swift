@@ -8,18 +8,24 @@
 import Foundation
 import WebKit
 
-public class InAppWebViewStatic: ChannelDelegate {
-    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_static"
+class InAppWebViewStatic: NSObject, FlutterPlugin {
     static var registrar: FlutterPluginRegistrar?
+    static var channel: FlutterMethodChannel?
     static var webViewForUserAgent: WKWebView?
     static var defaultUserAgent: String?
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: InAppWebViewStatic.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger()))
-        InAppWebViewStatic.registrar = registrar
+    static func register(with registrar: FlutterPluginRegistrar) {
+        
     }
     
-    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    init(registrar: FlutterPluginRegistrar) {
+        super.init()
+        InAppWebViewStatic.registrar = registrar
+        InAppWebViewStatic.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappwebview_static", binaryMessenger: registrar.messenger())
+        registrar.addMethodCallDelegate(self, channel: InAppWebViewStatic.channel!)
+    }
+    
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
         
         switch call.method {
@@ -67,14 +73,11 @@ public class InAppWebViewStatic: ChannelDelegate {
         }
     }
     
-    public override func dispose() {
-        super.dispose()
+    public func dispose() {
+        InAppWebViewStatic.channel?.setMethodCallHandler(nil)
+        InAppWebViewStatic.channel = nil
         InAppWebViewStatic.registrar = nil
         InAppWebViewStatic.webViewForUserAgent = nil
         InAppWebViewStatic.defaultUserAgent = nil
-    }
-    
-    deinit {
-        dispose()
     }
 }

@@ -20,6 +20,6 @@ public class LeakAvoider: NSObject {
     }
     
     deinit {
-        debugPrint("LeakAvoider - dealloc")
+        print("LeakAvoider - dealloc")
     }
 }

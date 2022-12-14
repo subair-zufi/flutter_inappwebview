@@ -10,8 +10,7 @@ public class OnWindowFocusEventJS {
           OnWindowFocusEventJS.ON_WINDOW_FOCUS_EVENT_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          false,
-          null
+          false
   );
 
   public static final String ON_WINDOW_FOCUS_EVENT_JS_SOURCE = "(function(){" +

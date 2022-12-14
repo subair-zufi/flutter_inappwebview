@@ -2,33 +2,32 @@ package com.pichillilorenzo.flutter_inappwebview;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.pichillilorenzo.flutter_inappwebview.types.ChannelDelegateImpl;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-public class PlatformUtil extends ChannelDelegateImpl {
+public class PlatformUtil implements MethodChannel.MethodCallHandler {
+
   protected static final String LOG_TAG = "PlatformUtil";
-  public static final String METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_platformutil";
-  
+  public MethodChannel channel;
   @Nullable
   public InAppWebViewFlutterPlugin plugin;
 
   public PlatformUtil(final InAppWebViewFlutterPlugin plugin) {
-    super(new MethodChannel(plugin.messenger, METHOD_CHANNEL_NAME));
     this.plugin = plugin;
+    channel = new MethodChannel(plugin.messenger, "com.pichillilorenzo/flutter_inappwebview_platformutil");
+    channel.setMethodCallHandler(this);
   }
 
   @Override
-  public void onMethodCall(@NonNull MethodCall call, @NonNull final MethodChannel.Result result) {
+  public void onMethodCall(MethodCall call, final MethodChannel.Result result) {
     switch (call.method) {
       case "getSystemVersion":
         result.success(String.valueOf(Build.VERSION.SDK_INT));
@@ -65,9 +64,8 @@ public class PlatformUtil extends ChannelDelegateImpl {
     return sdf.format(new Date(date));
   }
 
-  @Override
   public void dispose() {
-    super.dispose();
+    channel.setMethodCallHandler(null);
     plugin = null;
   }
 }

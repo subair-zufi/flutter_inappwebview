@@ -11,21 +11,28 @@ import WebKit
 import Foundation
 import AVFoundation
 
-public class InAppBrowserManager: ChannelDelegate {
-    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappbrowser"
-    static let WEBVIEW_STORYBOARD = "WebView"
-    static let WEBVIEW_STORYBOARD_CONTROLLER_ID = "viewController"
-    static let NAV_STORYBOARD_CONTROLLER_ID = "navController"
+let WEBVIEW_STORYBOARD = "WebView"
+let WEBVIEW_STORYBOARD_CONTROLLER_ID = "viewController"
+let NAV_STORYBOARD_CONTROLLER_ID = "navController"
+
+public class InAppBrowserManager: NSObject, FlutterPlugin {
     static var registrar: FlutterPluginRegistrar?
+    static var channel: FlutterMethodChannel?
     
     private var previousStatusBarStyle = -1
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: InAppBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger()))
-        InAppBrowserManager.registrar = registrar
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        
     }
     
-    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    init(registrar: FlutterPluginRegistrar) {
+        super.init()
+        InAppBrowserManager.registrar = registrar
+        InAppBrowserManager.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappbrowser", binaryMessenger: registrar.messenger())
+        registrar.addMethodCallDelegate(self, channel: InAppBrowserManager.channel!)
+    }
+    
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
 
         switch call.method {
@@ -43,21 +50,20 @@ public class InAppBrowserManager: ChannelDelegate {
         }
     }
     
-    public func prepareInAppBrowserWebViewController(settings: [String: Any?]) -> InAppBrowserWebViewController {
+    public func prepareInAppBrowserWebViewController(options: [String: Any?]) -> InAppBrowserWebViewController {
         if previousStatusBarStyle == -1 {
             previousStatusBarStyle = UIApplication.shared.statusBarStyle.rawValue
         }
         
-        let browserSettings = InAppBrowserSettings()
-        let _ = browserSettings.parse(settings: settings)
+        let browserOptions = InAppBrowserOptions()
+        let _ = browserOptions.parse(options: options)
         
-        let webViewSettings = InAppWebViewSettings()
-        let _ = webViewSettings.parse(settings: settings)
+        let webViewOptions = InAppWebViewOptions()
+        let _ = webViewOptions.parse(options: options)
         
         let webViewController = InAppBrowserWebViewController()
-        webViewController.browserSettings = browserSettings
-        webViewController.isHidden = browserSettings.hidden
-        webViewController.webViewSettings = webViewSettings
+        webViewController.browserOptions = browserOptions
+        webViewController.webViewOptions = webViewOptions
         webViewController.previousStatusBarStyle = previousStatusBarStyle
         return webViewController
     }
@@ -70,13 +76,13 @@ public class InAppBrowserManager: ChannelDelegate {
         let mimeType = arguments["mimeType"] as? String
         let encoding = arguments["encoding"] as? String
         let baseUrl = arguments["baseUrl"] as? String
-        let settings = arguments["settings"] as! [String: Any?]
+        let options = arguments["options"] as! [String: Any?]
         let contextMenu = arguments["contextMenu"] as! [String: Any]
         let windowId = arguments["windowId"] as? Int64
         let initialUserScripts = arguments["initialUserScripts"] as? [[String: Any]]
-        let pullToRefreshInitialSettings = arguments["pullToRefreshSettings"] as! [String: Any?]
+        let pullToRefreshInitialOptions = arguments["pullToRefreshOptions"] as! [String: Any?]
         
-        let webViewController = prepareInAppBrowserWebViewController(settings: settings)
+        let webViewController = prepareInAppBrowserWebViewController(options: options)
         
         webViewController.id = id
         webViewController.initialUrlRequest = urlRequest != nil ? URLRequest.init(fromPluginMap: urlRequest!) : nil
@@ -88,14 +94,14 @@ public class InAppBrowserManager: ChannelDelegate {
         webViewController.contextMenu = contextMenu
         webViewController.windowId = windowId
         webViewController.initialUserScripts = initialUserScripts ?? []
-        webViewController.pullToRefreshInitialSettings = pullToRefreshInitialSettings
+        webViewController.pullToRefreshInitialOptions = pullToRefreshInitialOptions
         
         presentViewController(webViewController: webViewController)
     }
     
     public func presentViewController(webViewController: InAppBrowserWebViewController) {
-        let storyboard = UIStoryboard(name: InAppBrowserManager.WEBVIEW_STORYBOARD, bundle: Bundle(for: InAppWebViewFlutterPlugin.self))
-        let navController = storyboard.instantiateViewController(withIdentifier: InAppBrowserManager.NAV_STORYBOARD_CONTROLLER_ID) as! InAppBrowserNavigationController
+        let storyboard = UIStoryboard(name: WEBVIEW_STORYBOARD, bundle: Bundle(for: InAppWebViewFlutterPlugin.self))
+        let navController = storyboard.instantiateViewController(withIdentifier: NAV_STORYBOARD_CONTROLLER_ID) as! InAppBrowserNavigationController
         webViewController.edgesForExtendedLayout = []
         navController.pushViewController(webViewController, animated: false)
         webViewController.prepareNavigationControllerBeforeViewWillAppear()
@@ -111,7 +117,7 @@ public class InAppBrowserManager: ChannelDelegate {
         navController.tmpWindow = tmpWindow
         
         var animated = true
-        if let browserSettings = webViewController.browserSettings, browserSettings.hidden {
+        if let browserOptions = webViewController.browserOptions, browserOptions.hidden {
             tmpWindow.isHidden = true
             UIApplication.shared.delegate?.window??.makeKeyAndVisible()
             animated = false
@@ -135,12 +141,9 @@ public class InAppBrowserManager: ChannelDelegate {
         result(true)
     }
     
-    public override func dispose() {
-        super.dispose()
+    public func dispose() {
+        InAppBrowserManager.channel?.setMethodCallHandler(nil)
+        InAppBrowserManager.channel = nil
         InAppBrowserManager.registrar = nil
-    }
-    
-    deinit {
-        dispose()
     }
 }

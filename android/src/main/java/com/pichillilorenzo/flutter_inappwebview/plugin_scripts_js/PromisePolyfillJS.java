@@ -10,8 +10,7 @@ public class PromisePolyfillJS {
           PromisePolyfillJS.PROMISE_POLYFILL_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          true,
-          null
+          true
   );
 
   // https://github.com/tildeio/rsvp.js

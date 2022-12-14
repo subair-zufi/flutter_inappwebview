@@ -13,17 +13,23 @@ import WebKit
 import Foundation
 import AVFoundation
 
-public class HeadlessInAppWebViewManager: ChannelDelegate {
-    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_headless_inappwebview"
+public class HeadlessInAppWebViewManager: NSObject, FlutterPlugin {
     static var registrar: FlutterPluginRegistrar?
+    static var channel: FlutterMethodChannel?
     static var webViews: [String: HeadlessInAppWebView?] = [:]
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: HeadlessInAppWebViewManager.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger()))
-        HeadlessInAppWebViewManager.registrar = registrar
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        
     }
     
-    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    init(registrar: FlutterPluginRegistrar) {
+        super.init()
+        HeadlessInAppWebViewManager.registrar = registrar
+        HeadlessInAppWebViewManager.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_headless_inappwebview", binaryMessenger: registrar.messenger())
+        registrar.addMethodCallDelegate(self, channel: HeadlessInAppWebViewManager.channel!)
+    }
+    
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
         let id: String = arguments!["id"] as! String
 
@@ -52,17 +58,14 @@ public class HeadlessInAppWebViewManager: ChannelDelegate {
         flutterWebView.makeInitialLoad(params: params as NSDictionary)
     }
     
-    public override func dispose() {
-        super.dispose()
+    public func dispose() {
+        HeadlessInAppWebViewManager.channel?.setMethodCallHandler(nil)
+        HeadlessInAppWebViewManager.channel = nil
         HeadlessInAppWebViewManager.registrar = nil
         let headlessWebViews = HeadlessInAppWebViewManager.webViews.values
         headlessWebViews.forEach { (headlessWebView: HeadlessInAppWebView?) in
             headlessWebView?.dispose()
         }
         HeadlessInAppWebViewManager.webViews.removeAll()
-    }
-    
-    deinit {
-        dispose()
     }
 }

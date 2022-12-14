@@ -8,46 +8,93 @@
 import Foundation
 import Flutter
 
-public class PullToRefreshControl : UIRefreshControl, Disposable {
-    static var METHOD_CHANNEL_NAME_PREFIX = "com.pichillilorenzo/flutter_inappwebview_pull_to_refresh_";
-    var channelDelegate: PullToRefreshChannelDelegate?
-    var settings: PullToRefreshSettings?
+public class PullToRefreshControl : UIRefreshControl, FlutterPlugin {
+    
+    var channel: FlutterMethodChannel?
+    var options: PullToRefreshOptions?
     var shouldCallOnRefresh = false
     var delegate: PullToRefreshDelegate?
     
-    public init(registrar: FlutterPluginRegistrar, id: Any, settings: PullToRefreshSettings?) {
+    public init(channel: FlutterMethodChannel?, options: PullToRefreshOptions?) {
         super.init()
-        self.settings = settings
-        let channel = FlutterMethodChannel(name: PullToRefreshControl.METHOD_CHANNEL_NAME_PREFIX + String(describing: id),
-                                           binaryMessenger: registrar.messenger())
-        self.channelDelegate = PullToRefreshChannelDelegate(pullToRefreshControl: self, channel: channel)
+        self.channel = channel
+        self.options = options
     }
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
     
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        
+    }
+    
     public func prepare() {
-        if let settings = settings {
-            if settings.enabled {
+        self.channel?.setMethodCallHandler(self.handle)
+        if let options = options {
+            if options.enabled {
                 delegate?.enablePullToRefresh()
             }
-            if let color = settings.color, !color.isEmpty {
+            if let color = options.color, !color.isEmpty {
                 tintColor = UIColor(hexString: color)
             }
-            if let backgroundTintColor = settings.backgroundColor, !backgroundTintColor.isEmpty {
+            if let backgroundTintColor = options.backgroundColor, !backgroundTintColor.isEmpty {
                 backgroundColor = UIColor(hexString: backgroundTintColor)
             }
-            if let attributedTitleMap = settings.attributedTitle {
+            if let attributedTitleMap = options.attributedTitle {
                 attributedTitle = NSAttributedString.fromMap(map: attributedTitleMap)
             }
         }
         addTarget(self, action: #selector(updateShouldCallOnRefresh), for: .valueChanged)
     }
     
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? NSDictionary
+        
+        switch call.method {
+        case "setEnabled":
+            let enabled = arguments!["enabled"] as! Bool
+            if enabled {
+                delegate?.enablePullToRefresh()
+            } else {
+                delegate?.disablePullToRefresh()
+            }
+            result(true)
+            break
+        case "setRefreshing":
+            let refreshing = arguments!["refreshing"] as! Bool
+            if refreshing {
+                self.beginRefreshing()
+            } else {
+                self.endRefreshing()
+            }
+            result(true)
+            break
+        case "setColor":
+            let color = arguments!["color"] as! String
+            tintColor = UIColor(hexString: color)
+            result(true)
+            break
+        case "setBackgroundColor":
+            let color = arguments!["color"] as! String
+            backgroundColor = UIColor(hexString: color)
+            result(true)
+            break
+        case "setAttributedTitle":
+            let attributedTitleMap = arguments!["attributedTitle"] as! [String: Any?]
+            attributedTitle = NSAttributedString.fromMap(map: attributedTitleMap)
+            result(true)
+            break
+        default:
+            result(FlutterMethodNotImplemented)
+            break
+        }
+    }
+    
     public func onRefresh() {
         shouldCallOnRefresh = false
-        channelDelegate?.onRefresh()
+        let arguments: [String: Any?] = [:]
+        self.channel?.invokeMethod("onRefresh", arguments: arguments)
     }
     
     @objc public func updateShouldCallOnRefresh() {
@@ -55,14 +102,13 @@ public class PullToRefreshControl : UIRefreshControl, Disposable {
     }
     
     public func dispose() {
-        channelDelegate?.dispose()
-        channelDelegate = nil
+        channel?.setMethodCallHandler(nil)
         removeTarget(self, action: #selector(updateShouldCallOnRefresh), for: .valueChanged)
         delegate = nil
     }
     
     deinit {
-        debugPrint("PullToRefreshControl - dealloc")
+        print("PullToRefreshControl - dealloc")
         dispose()
     }
 }

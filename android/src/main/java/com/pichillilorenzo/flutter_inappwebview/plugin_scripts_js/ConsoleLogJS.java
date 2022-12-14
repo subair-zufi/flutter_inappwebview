@@ -10,8 +10,7 @@ public class ConsoleLogJS {
           ConsoleLogJS.CONSOLE_LOG_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          true,
-          null
+          true
   );
 
   public static final String CONSOLE_LOG_JS_SOURCE = "(function(console) {" +

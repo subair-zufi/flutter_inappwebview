@@ -20,12 +20,8 @@ public class NavigationAction {
     Map<String, Object> navigationActionMap = new HashMap<>();
     navigationActionMap.put("request", request.toMap());
     navigationActionMap.put("isForMainFrame", isForMainFrame);
-    navigationActionMap.put("hasGesture", hasGesture);
-    navigationActionMap.put("isRedirect", isRedirect);
-    navigationActionMap.put("navigationType", null);
-    navigationActionMap.put("sourceFrame", null);
-    navigationActionMap.put("targetFrame", null);
-    navigationActionMap.put("shouldPerformDownload", null);
+    navigationActionMap.put("androidHasGesture", hasGesture);
+    navigationActionMap.put("androidIsRedirect", isRedirect);
     return navigationActionMap;
   }
 

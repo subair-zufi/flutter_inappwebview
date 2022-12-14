@@ -12,8 +12,8 @@ extension URLAuthenticationChallenge {
         return [
             "protectionSpace": protectionSpace.toMap(),
             "previousFailureCount": previousFailureCount,
-            "failureResponse": failureResponse?.toMap(),
-            "error": error?.localizedDescription,
+            "iosFailureResponse": failureResponse?.toMap(),
+            "iosError": error?.localizedDescription,
             "proposedCredential": proposedCredential?.toMap(),
         ]
     }

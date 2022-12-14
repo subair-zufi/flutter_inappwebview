@@ -213,7 +213,7 @@ public class Util {
             } else {
                 // normalize grouped zeros ::
                 var zeros: [String] = []
-                for _ in ipv6.count...8 {
+                for j in ipv6.count...8 {
                     zeros.append("0000")
                 }
                 fullIPv6[i] = zeros.joined(separator: ":")

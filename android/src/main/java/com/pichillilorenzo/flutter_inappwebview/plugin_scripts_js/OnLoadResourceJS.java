@@ -11,8 +11,7 @@ public class OnLoadResourceJS {
           OnLoadResourceJS.ON_LOAD_RESOURCE_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          false,
-          null
+          false
   );
 
   public static final String ON_LOAD_RESOURCE_JS_SOURCE = "window." + FLAG_VARIABLE_FOR_ON_LOAD_RESOURCE_JS_SOURCE + " = true;" +

@@ -19,8 +19,8 @@ extension URLCredential {
         return [
             "password": password,
             "username": user,
-            "certificates": x509Certificates,
-            "persistence": persistence.rawValue
+            "iosCertificates": x509Certificates,
+            "iosPersistence": persistence.rawValue
         ]
     }
 }

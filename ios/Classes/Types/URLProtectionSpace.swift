@@ -54,10 +54,11 @@ extension URLProtectionSpace {
             "port": port,
             "sslCertificate": sslCertificate?.toMap(),
             "sslError": sslError?.toMap(),
-            "authenticationMethod": authenticationMethod,
-            "distinguishedNames": distinguishedNames,
-            "receivesCredentialSecurely": receivesCredentialSecurely,
-            "proxyType": proxyType
+            "iosAuthenticationMethod": authenticationMethod,
+            "iosDistinguishedNames": distinguishedNames,
+            "iosReceivesCredentialSecurely": receivesCredentialSecurely,
+            "iosIsProxy": isProxy(),
+            "iosProxyType": proxyType
         ]
     }
 }

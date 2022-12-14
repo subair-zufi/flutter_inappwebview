@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import 'main.dart';
@@ -19,13 +19,11 @@ class _HeadlessInAppWebViewExampleScreenState
   void initState() {
     super.initState();
 
-    var url = !kIsWeb
-        ? WebUri("https://flutter.dev")
-        : WebUri("http://localhost:${Uri.base.port}/page.html");
-
     headlessWebView = new HeadlessInAppWebView(
-      initialUrlRequest: URLRequest(url: url),
-      initialSettings: InAppWebViewSettings(),
+      initialUrlRequest: URLRequest(url: Uri.parse("https://flutter.dev")),
+      initialOptions: InAppWebViewGroupOptions(
+        crossPlatform: InAppWebViewOptions(),
+      ),
       onWebViewCreated: (controller) {
         print('HeadlessInAppWebView created!');
       },
@@ -33,16 +31,19 @@ class _HeadlessInAppWebViewExampleScreenState
         print("CONSOLE MESSAGE: " + consoleMessage.message);
       },
       onLoadStart: (controller, url) async {
+        print("onLoadStart $url");
         setState(() {
           this.url = url.toString();
         });
       },
       onLoadStop: (controller, url) async {
+        print("onLoadStop $url");
         setState(() {
           this.url = url.toString();
         });
       },
-      onUpdateVisitedHistory: (controller, url, isReload) {
+      onUpdateVisitedHistory: (controller, url, androidIsReload) {
+        print("onUpdateVisitedHistory $url");
         setState(() {
           this.url = url.toString();
         });
@@ -79,34 +80,23 @@ class _HeadlessInAppWebViewExampleScreenState
                 },
                 child: Text("Run HeadlessInAppWebView")),
           ),
-          Container(
-            height: 10,
-          ),
           Center(
             child: ElevatedButton(
                 onPressed: () async {
-                  if (headlessWebView?.isRunning() ?? false) {
+                  try {
                     await headlessWebView?.webViewController.evaluateJavascript(
                         source: """console.log('Here is the message!');""");
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(
-                          'HeadlessInAppWebView is not running. Click on "Run HeadlessInAppWebView"!'),
-                    ));
+                  } on MissingPluginException {
+                    print(
+                        "HeadlessInAppWebView is not running. Click on \"Run HeadlessInAppWebView\"!");
                   }
                 },
                 child: Text("Send console.log message")),
-          ),
-          Container(
-            height: 10,
           ),
           Center(
             child: ElevatedButton(
                 onPressed: () {
                   headlessWebView?.dispose();
-                  setState(() {
-                    this.url = "";
-                  });
                 },
                 child: Text("Dispose HeadlessInAppWebView")),
           )

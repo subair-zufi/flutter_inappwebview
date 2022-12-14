@@ -77,8 +77,7 @@ public class PluginScriptsUtil {
           PluginScriptsUtil.CHECK_GLOBAL_KEY_DOWN_EVENT_TO_HIDE_CONTEXT_MENU_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          false,
-          null
+          false
   );
 
   // android Workaround to hide context menu when user emit a keydown event

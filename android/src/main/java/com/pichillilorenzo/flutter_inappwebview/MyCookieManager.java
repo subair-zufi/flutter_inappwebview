@@ -5,10 +5,7 @@ import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.ValueCallback;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.pichillilorenzo.flutter_inappwebview.types.ChannelDelegateImpl;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,22 +19,24 @@ import java.util.TimeZone;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-public class MyCookieManager extends ChannelDelegateImpl {
-  protected static final String LOG_TAG = "MyCookieManager";
-  public static final String METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_cookiemanager";
-  @Nullable
+public class MyCookieManager implements MethodChannel.MethodCallHandler {
+
+  static final String LOG_TAG = "MyCookieManager";
+
+  public MethodChannel channel;
   public static CookieManager cookieManager;
   @Nullable
   public InAppWebViewFlutterPlugin plugin;
 
   public MyCookieManager(final InAppWebViewFlutterPlugin plugin) {
-    super(new MethodChannel(plugin.messenger, METHOD_CHANNEL_NAME));
     this.plugin = plugin;
+    channel = new MethodChannel(plugin.messenger, "com.pichillilorenzo/flutter_inappwebview_cookiemanager");
+    channel.setMethodCallHandler(this);
     cookieManager = getCookieManager();
   }
 
   @Override
-  public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
+  public void onMethodCall(MethodCall call, MethodChannel.Result result) {
     switch (call.method) {
       case "setCookie":
         {
@@ -141,10 +140,7 @@ public class MyCookieManager extends ChannelDelegateImpl {
     cookieManager = getCookieManager();
     if (cookieManager == null) return;
 
-    String cookieValue = name + "=" + value + "; Path=" + path;
-
-    if (domain != null)
-      cookieValue += "; Domain=" + domain;
+    String cookieValue = name + "=" + value + "; Domain=" + domain + "; Path=" + path;
 
     if (expiresDate != null)
       cookieValue += "; Expires=" + getCookieExpirationDate(expiresDate);
@@ -172,16 +168,13 @@ public class MyCookieManager extends ChannelDelegateImpl {
       });
       cookieManager.flush();
     }
-    else if (plugin != null) {
+    else {
       CookieSyncManager cookieSyncMngr = CookieSyncManager.createInstance(plugin.applicationContext);
       cookieSyncMngr.startSync();
       cookieManager.setCookie(url, cookieValue);
       result.success(true);
       cookieSyncMngr.stopSync();
       cookieSyncMngr.sync();
-    } else {
-      cookieManager.setCookie(url, cookieValue);
-      result.success(true);
     }
   }
 
@@ -222,12 +215,7 @@ public class MyCookieManager extends ChannelDelegateImpl {
     cookieManager = getCookieManager();
     if (cookieManager == null) return;
 
-    String cookieValue = name + "=; Path=" + path + "; Max-Age=-1";
-
-    if (domain != null)
-      cookieValue += "; Domain=" + domain;
-
-    cookieValue += ";";
+    String cookieValue = name + "=; Path=" + path + "; Domain=" + domain + "; Max-Age=-1;";
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       cookieManager.setCookie(url, cookieValue, new ValueCallback<Boolean>() {
@@ -238,16 +226,13 @@ public class MyCookieManager extends ChannelDelegateImpl {
       });
       cookieManager.flush();
     }
-    else if (plugin != null) {
+    else {
       CookieSyncManager cookieSyncMngr = CookieSyncManager.createInstance(plugin.applicationContext);
       cookieSyncMngr.startSync();
       cookieManager.setCookie(url, cookieValue);
       result.success(true);
       cookieSyncMngr.stopSync();
       cookieSyncMngr.sync();
-    } else {
-      cookieManager.setCookie(url, cookieValue);
-      result.success(true);
     }
   }
 
@@ -260,7 +245,7 @@ public class MyCookieManager extends ChannelDelegateImpl {
     String cookiesString = cookieManager.getCookie(url);
     if (cookiesString != null) {
 
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP && plugin != null) {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
         cookieSyncMngr = CookieSyncManager.createInstance(plugin.applicationContext);
         cookieSyncMngr.startSync();
       }
@@ -269,14 +254,7 @@ public class MyCookieManager extends ChannelDelegateImpl {
       for (String cookie : cookies) {
         String[] nameValue = cookie.split("=", 2);
         String name = nameValue[0].trim();
-
-        String cookieValue = name + "=; Path=" + path + "; Max-Age=-1";
-
-        if (domain != null)
-          cookieValue += "; Domain=" + domain;
-
-        cookieValue += ";";
-
+        String cookieValue = name + "=; Path=" + path + "; Domain=" + domain + "; Max-Age=-1;";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
           cookieManager.setCookie(url, cookieValue, null);
         else
@@ -305,16 +283,13 @@ public class MyCookieManager extends ChannelDelegateImpl {
       });
       cookieManager.flush();
     }
-    else if (plugin != null) {
+    else {
       CookieSyncManager cookieSyncMngr = CookieSyncManager.createInstance(plugin.applicationContext);
       cookieSyncMngr.startSync();
       cookieManager.removeAllCookie();
       result.success(true);
       cookieSyncMngr.stopSync();
       cookieSyncMngr.sync();
-    } else {
-      cookieManager.removeAllCookie();
-      result.success(true);
     }
   }
 
@@ -324,10 +299,8 @@ public class MyCookieManager extends ChannelDelegateImpl {
     return sdf.format(new Date(timestamp));
   }
 
-  @Override
   public void dispose() {
-    super.dispose();
+    channel.setMethodCallHandler(null);
     plugin = null;
-    cookieManager = null;
   }
 }

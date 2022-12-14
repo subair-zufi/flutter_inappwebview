@@ -46,11 +46,6 @@ public class URLProtectionSpace {
     urlProtectionSpaceMap.put("port", port);
     urlProtectionSpaceMap.put("sslCertificate", SslCertificateExt.toMap(sslCertificate));
     urlProtectionSpaceMap.put("sslError", SslErrorExt.toMap(sslError));
-    urlProtectionSpaceMap.put("authenticationMethod", null);
-    urlProtectionSpaceMap.put("distinguishedNames", null);
-    urlProtectionSpaceMap.put("receivesCredentialSecurely", null);
-    urlProtectionSpaceMap.put("isProxy", null);
-    urlProtectionSpaceMap.put("proxyType", null);
     return urlProtectionSpaceMap;
   }
 

@@ -36,7 +36,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.pichillilorenzo.flutter_inappwebview.InAppWebViewFlutterPlugin;
-import com.pichillilorenzo.flutter_inappwebview.types.ChannelDelegateImpl;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -52,19 +51,20 @@ import io.flutter.plugin.common.MethodChannel.Result;
 /**
  * InAppBrowserManager
  */
-public class InAppBrowserManager extends ChannelDelegateImpl {
+public class InAppBrowserManager implements MethodChannel.MethodCallHandler {
+
   protected static final String LOG_TAG = "InAppBrowserManager";
-  public static final String METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappbrowser";
-  
+  public MethodChannel channel;
   @Nullable
   public InAppWebViewFlutterPlugin plugin;
   public String id;
   public static final Map<String, InAppBrowserManager> shared = new HashMap<>();
 
   public InAppBrowserManager(final InAppWebViewFlutterPlugin plugin) {
-    super(new MethodChannel(plugin.messenger, METHOD_CHANNEL_NAME));
     this.id = UUID.randomUUID().toString();
     this.plugin = plugin;
+    channel = new MethodChannel(plugin.messenger, "com.pichillilorenzo/flutter_inappbrowser");
+    channel.setMethodCallHandler(this);
     shared.put(this.id, this);
   }
 
@@ -176,11 +176,11 @@ public class InAppBrowserManager extends ChannelDelegateImpl {
     String encoding = (String) arguments.get("encoding");
     String baseUrl = (String) arguments.get("baseUrl");
     String historyUrl = (String) arguments.get("historyUrl");
-    Map<String, Object> settings = (Map<String, Object>) arguments.get("settings");
+    Map<String, Object> options = (Map<String, Object>) arguments.get("options");
     Map<String, Object> contextMenu = (Map<String, Object>) arguments.get("contextMenu");
     Integer windowId = (Integer) arguments.get("windowId");
     List<Map<String, Object>> initialUserScripts = (List<Map<String, Object>>) arguments.get("initialUserScripts");
-    Map<String, Object> pullToRefreshInitialSettings = (Map<String, Object>) arguments.get("pullToRefreshSettings");
+    Map<String, Object> pullToRefreshInitialOptions = (Map<String, Object>) arguments.get("pullToRefreshOptions");
 
     Bundle extras = new Bundle();
     extras.putString("fromActivity", activity.getClass().getName());
@@ -193,11 +193,11 @@ public class InAppBrowserManager extends ChannelDelegateImpl {
     extras.putString("initialHistoryUrl", historyUrl);
     extras.putString("id", id);
     extras.putString("managerId", this.id);
-    extras.putSerializable("settings", (Serializable) settings);
+    extras.putSerializable("options", (Serializable) options);
     extras.putSerializable("contextMenu", (Serializable) contextMenu);
     extras.putInt("windowId", windowId != null ? windowId : -1);
     extras.putSerializable("initialUserScripts", (Serializable) initialUserScripts);
-    extras.putSerializable("pullToRefreshInitialSettings", (Serializable) pullToRefreshInitialSettings);
+    extras.putSerializable("pullToRefreshInitialOptions", (Serializable) pullToRefreshInitialOptions);
     startInAppBrowserActivity(activity, extras);
   }
 
@@ -208,9 +208,8 @@ public class InAppBrowserManager extends ChannelDelegateImpl {
     activity.startActivity(intent);
   }
 
-  @Override
   public void dispose() {
-    super.dispose();
+    channel.setMethodCallHandler(null);
     shared.remove(this.id);
     plugin = null;
   }

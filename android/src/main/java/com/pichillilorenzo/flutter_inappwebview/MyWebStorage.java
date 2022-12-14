@@ -3,10 +3,7 @@ package com.pichillilorenzo.flutter_inappwebview;
 import android.webkit.ValueCallback;
 import android.webkit.WebStorage;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.pichillilorenzo.flutter_inappwebview.types.ChannelDelegateImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,45 +13,38 @@ import java.util.Map;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-public class MyWebStorage extends ChannelDelegateImpl {
-  protected static final String LOG_TAG = "MyWebStorage";
-  public static final String METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_webstoragemanager";
+public class MyWebStorage implements MethodChannel.MethodCallHandler {
 
-  @Nullable
+  static final String LOG_TAG = "MyWebStorage";
+
+  public MethodChannel channel;
   public static WebStorage webStorageManager;
   @Nullable
   public InAppWebViewFlutterPlugin plugin;
 
   public MyWebStorage(final InAppWebViewFlutterPlugin plugin) {
-    super(new MethodChannel(plugin.messenger, METHOD_CHANNEL_NAME));
     this.plugin = plugin;
+    channel = new MethodChannel(plugin.messenger, "com.pichillilorenzo/flutter_inappwebview_webstoragemanager");
+    channel.setMethodCallHandler(this);
     webStorageManager = WebStorage.getInstance();
   }
 
   @Override
-  public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
+  public void onMethodCall(MethodCall call, MethodChannel.Result result) {
     switch (call.method) {
       case "getOrigins":
         getOrigins(result);
         break;
       case "deleteAllData":
-        if (webStorageManager == null) {
-          webStorageManager.deleteAllData();
-          result.success(true);
-        } else {
-          result.success(false);
-        }
+        webStorageManager.deleteAllData();
+        result.success(true);
         break;
       case "deleteOrigin":
         {
-          if (webStorageManager == null) {
-            String origin = (String) call.argument("origin");
-            webStorageManager.deleteOrigin(origin);
-            result.success(true);
-          } else {
-            result.success(false);
-          }
+          String origin = (String) call.argument("origin");
+          webStorageManager.deleteOrigin(origin);
         }
+        result.success(true);
         break;
       case "getQuotaForOrigin":
         {
@@ -65,7 +55,7 @@ public class MyWebStorage extends ChannelDelegateImpl {
       case "getUsageForOrigin":
        {
           String origin = (String) call.argument("origin");
-          getUsageForOrigin(origin, result);
+         getUsageForOrigin(origin, result);
        }
        break;
       default:
@@ -74,10 +64,6 @@ public class MyWebStorage extends ChannelDelegateImpl {
   }
 
   public void getOrigins(final MethodChannel.Result result) {
-    if (webStorageManager == null) {
-      result.success(new ArrayList<>());
-      return;
-    }
     webStorageManager.getOrigins(new ValueCallback<Map>() {
       @Override
       public void onReceiveValue(Map value) {
@@ -98,10 +84,6 @@ public class MyWebStorage extends ChannelDelegateImpl {
   }
 
   public void getQuotaForOrigin(String origin, final MethodChannel.Result result) {
-    if (webStorageManager == null) {
-      result.success(0);
-      return;
-    }
     webStorageManager.getQuotaForOrigin(origin, new ValueCallback<Long>() {
       @Override
       public void onReceiveValue(Long value) {
@@ -111,10 +93,6 @@ public class MyWebStorage extends ChannelDelegateImpl {
   }
 
   public void getUsageForOrigin(String origin, final MethodChannel.Result result) {
-    if (webStorageManager == null) {
-      result.success(0);
-      return;
-    }
     webStorageManager.getUsageForOrigin(origin, new ValueCallback<Long>() {
       @Override
       public void onReceiveValue(Long value) {
@@ -123,10 +101,8 @@ public class MyWebStorage extends ChannelDelegateImpl {
     });
   }
 
-  @Override
   public void dispose() {
-    super.dispose();
+    channel.setMethodCallHandler(null);
     plugin = null;
-    webStorageManager = null;
   }
 }

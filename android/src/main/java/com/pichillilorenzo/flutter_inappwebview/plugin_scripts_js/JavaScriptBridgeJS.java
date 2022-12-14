@@ -11,8 +11,7 @@ public class JavaScriptBridgeJS {
           JavaScriptBridgeJS.JAVASCRIPT_BRIDGE_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          true,
-          null
+          true
   );
 
   public static final String JAVASCRIPT_UTIL_VAR_NAME = "window." + JAVASCRIPT_BRIDGE_NAME + "._Util";
@@ -148,8 +147,7 @@ public class JavaScriptBridgeJS {
           "        });" +
           "    }," +
           "    arrayBufferToString: function(arrayBuffer) {" +
-          "        var uint8Array = new Uint8Array(arrayBuffer);" +
-          "        return uint8Array.reduce(function(acc, i) { return acc += String.fromCharCode.apply(null, [i]); }, '');" +
+          "        return String.fromCharCode.apply(String, arrayBuffer);" +
           "    }," +
           "    isBodyFormData: function(bodyString) {" +
           "        return bodyString.indexOf('------WebKitFormBoundary') >= 0;" +

@@ -10,8 +10,7 @@ public class OnWindowBlurEventJS {
           OnWindowBlurEventJS.ON_WINDOW_BLUR_EVENT_JS_SOURCE,
           UserScriptInjectionTime.AT_DOCUMENT_START,
           null,
-          false,
-          null
+          false
   );
 
   public static final String ON_WINDOW_BLUR_EVENT_JS_SOURCE = "(function(){" +

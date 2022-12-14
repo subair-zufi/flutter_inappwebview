@@ -48,7 +48,7 @@ public class SslErrorExt extends SslError {
     }
 
     Map<String, Object> urlProtectionSpaceMap = new HashMap<>();
-    urlProtectionSpaceMap.put("code", primaryError >= 0 ? primaryError : null);
+    urlProtectionSpaceMap.put("androidError", primaryError);
     urlProtectionSpaceMap.put("message", message);
     return urlProtectionSpaceMap;
   }
